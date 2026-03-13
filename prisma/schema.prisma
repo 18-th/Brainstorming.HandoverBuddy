@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id          String     @id @default(cuid())
+  githubId    String     @unique
+  githubLogin String
+  avatarUrl   String?
+  createdAt   DateTime   @default(now())
+  handovers   Handover[]
+}
+
+model Handover {
+  id          String         @id @default(cuid())
+  title       String
+  leavingDate DateTime?
+  status      HandoverStatus @default(DRAFT)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  creatorId   String
+  creator     User           @relation(fields: [creatorId], references: [id])
+  items       HandoverItem[]
+}
+
+model HandoverItem {
+  id              String    @id @default(cuid())
+  prNumber        Int
+  prTitle         String
+  prUrl           String
+  repoFullName    String
+  newOwnerLogin   String?
+  notes           String?
+  confirmToken    String    @unique @default(cuid())
+  confirmedAt     DateTime?
+  confirmedByName String?
+  refusedAt             DateTime?
+  refusedByName         String?
+  refusalMessage        String?
+  refusalSuggestedOwner String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  handoverId      String
+  handover        Handover  @relation(fields: [handoverId], references: [id], onDelete: Cascade)
+}
+
+enum HandoverStatus {
+  DRAFT
+  ACTIVE
+  COMPLETE
+}

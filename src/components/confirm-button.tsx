@@ -5,9 +5,12 @@ import { useState, useEffect, useRef } from "react";
 interface Props {
   token: string;
   prTitle: string;
+  prUrl: string;
+  repoFullName: string;
+  prNumber: number;
 }
 
-export default function ConfirmButton({ token, prTitle }: Props) {
+export default function ConfirmButton({ token, prTitle, prUrl, repoFullName, prNumber }: Props) {
   const [name, setName] = useState("");
   const [confirming, setConfirming] = useState(false);
   const [refusing, setRefusing] = useState(false);
@@ -15,12 +18,15 @@ export default function ConfirmButton({ token, prTitle }: Props) {
   const [refusalMessage, setRefusalMessage] = useState("");
   const [refusalSuggestedOwner, setRefusalSuggestedOwner] = useState("");
   const [done, setDone] = useState(false);
+  const [confirmedAt, setConfirmedAt] = useState<string | null>(null);
   const [refused, setRefused] = useState(false);
+  const [refusedAt, setRefusedAt] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [suggestions, setSuggestions] = useState<{ login: string; avatarUrl: string }[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const suggestInputRef = useRef<HTMLDivElement>(null);
+  const suggestInputFocusedRef = useRef(false);
   const isMounted = useRef(false);
 
   useEffect(() => {
@@ -37,7 +43,9 @@ export default function ConfirmButton({ token, prTitle }: Props) {
       const res = await fetch(`/api/github/users?q=${encodeURIComponent(refusalSuggestedOwner)}`);
       const data = await res.json();
       setSuggestions(data.users ?? []);
-      setShowSuggestions(true);
+      if (suggestInputFocusedRef.current) {
+        setShowSuggestions(true);
+      }
     }, 500);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [refusalSuggestedOwner]);
@@ -63,6 +71,7 @@ export default function ConfirmButton({ token, prTitle }: Props) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to confirm");
+      setConfirmedAt(data.confirmedAt ?? new Date().toISOString());
       setDone(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
@@ -86,6 +95,7 @@ export default function ConfirmButton({ token, prTitle }: Props) {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to submit refusal");
+      setRefusedAt(data.refusedAt ?? new Date().toISOString());
       setRefused(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong");
@@ -95,26 +105,93 @@ export default function ConfirmButton({ token, prTitle }: Props) {
   }
 
   if (done) {
+    const confirmedDate = confirmedAt
+      ? new Date(confirmedAt).toLocaleString(undefined, {
+          dateStyle: "medium",
+          timeStyle: "short",
+        })
+      : "Just now";
+
     return (
-      <div className="rounded-xl border border-accent-purple-light bg-accent-purple-light p-6 text-center space-y-2">
-        <div className="text-4xl">✅</div>
-        <p className="font-semibold text-primary">Handover confirmed!</p>
-        <p className="text-sm text-primary/70">
-          You&apos;ve confirmed receipt of: <span className="font-medium">{prTitle}</span>
-        </p>
+      <div className="relative overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100/50 p-6 shadow-sm">
+        <div className="space-y-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-100/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-800">
+            <span className="text-sm" aria-hidden>
+              ✓
+            </span>
+            Confirmed
+          </div>
+
+          <div>
+            <p className="text-lg font-semibold text-primary">Responsibility accepted</p>
+            <p className="mt-1 text-sm text-primary/80">
+              We&apos;ve recorded your confirmation for this pull request.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-emerald-200/80 bg-white/80 p-4">
+            <a
+              href={prUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-accent-purple hover:underline"
+            >
+              {prTitle} ↗
+            </a>
+            <p className="mt-1 text-sm text-gray-600">
+              {repoFullName} #{prNumber}
+            </p>
+            <p className="mt-2 text-xs text-gray-500">Confirmed: {confirmedDate}</p>
+          </div>
+
+          <p className="text-xs text-gray-500">You can close this tab now.</p>
+        </div>
       </div>
     );
   }
 
   if (refused) {
+    const refusedDate = refusedAt
+      ? new Date(refusedAt).toLocaleString(undefined, {
+          dateStyle: "medium",
+          timeStyle: "short",
+        })
+      : "Just now";
+
     return (
-      <div className="rounded-xl border border-accent-red-border bg-accent-red-light p-6 text-center space-y-2">
-        <div className="text-4xl">🚫</div>
-        <p className="font-semibold text-accent-red">Handover declined</p>
-        <p className="text-sm text-accent-red/80">
-          You&apos;ve declined: <span className="font-medium">{prTitle}</span>
-        </p>
-        <p className="text-xs text-accent-red/60 mt-1">The sender has been notified.</p>
+      <div className="relative overflow-hidden rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 via-white to-red-100/60 p-6 shadow-sm">
+        <div className="space-y-4">
+          <div className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-100/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-red-800">
+            <span className="text-sm" aria-hidden>
+              !
+            </span>
+            Declined
+          </div>
+
+          <div>
+            <p className="text-lg font-semibold text-accent-red">Handover declined</p>
+            <p className="mt-1 text-sm text-accent-red/90">
+              We&apos;ve recorded that you cannot take ownership of this pull request.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-red-200/80 bg-white/85 p-4">
+            <a
+              href={prUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-accent-purple hover:underline"
+            >
+              {prTitle} ↗
+            </a>
+            <p className="mt-1 text-sm text-gray-600">
+              {repoFullName} #{prNumber}
+            </p>
+            <p className="mt-2 text-xs text-gray-500">Declined: {refusedDate}</p>
+          </div>
+
+          <p className="text-xs text-gray-500">The sender has been notified. You can close this tab.</p>
+        </div>
       </div>
     );
   }
@@ -179,7 +256,13 @@ export default function ConfirmButton({ token, prTitle }: Props) {
               type="text"
               value={refusalSuggestedOwner}
               onChange={(e) => { setRefusalSuggestedOwner(e.target.value); setShowSuggestions(true); }}
-              onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+              onFocus={() => {
+                suggestInputFocusedRef.current = true;
+                if (suggestions.length > 0) setShowSuggestions(true);
+              }}
+              onBlur={() => {
+                suggestInputFocusedRef.current = false;
+              }}
               placeholder="e.g. octocat"
               className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent-red"
             />

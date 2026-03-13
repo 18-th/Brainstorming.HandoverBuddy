@@ -32,6 +32,7 @@ export default function HandoverItemEditor({ item, handoverId }: Props) {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ownerInputRef = useRef<HTMLDivElement>(null);
+  const ownerInputFocusedRef = useRef(false);
   const isMounted = useRef(false);
   const skipNextFetch = useRef(false);
   const fetchGenRef = useRef(0);
@@ -56,7 +57,9 @@ export default function HandoverItemEditor({ item, handoverId }: Props) {
       const data = await res.json();
       if (fetchGenRef.current !== gen) return;
       setSuggestions(data.users ?? []);
-      setShowSuggestions(true);
+      if (ownerInputFocusedRef.current) {
+        setShowSuggestions(true);
+      }
     }, 500);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [owner]);
@@ -81,6 +84,7 @@ export default function HandoverItemEditor({ item, handoverId }: Props) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ newOwnerLogin: owner, notes }),
     });
+    router.refresh();
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -128,7 +132,13 @@ export default function HandoverItemEditor({ item, handoverId }: Props) {
             type="text"
             value={owner}
             onChange={(e) => { setOwner(e.target.value); setShowSuggestions(true); }}
-            onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
+            onFocus={() => {
+              ownerInputFocusedRef.current = true;
+              if (suggestions.length > 0) setShowSuggestions(true);
+            }}
+            onBlur={() => {
+              ownerInputFocusedRef.current = false;
+            }}
             placeholder="e.g. octocat"
             className="w-full rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />

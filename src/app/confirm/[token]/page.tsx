@@ -35,21 +35,47 @@ export default async function ConfirmPage({
   }
 
   if (item.confirmedAt) {
+    const confirmedDate = new Date(item.confirmedAt).toLocaleString(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+
     return (
       <main className="flex min-h-screen items-center justify-center px-4">
-        <div className="max-w-md w-full space-y-4 text-center">
-          <div className="text-5xl">✅</div>
-          <h1 className="text-2xl font-bold">Already confirmed</h1>
-          <p className="text-gray-600">
-            This PR was confirmed on{" "}
-            {new Date(item.confirmedAt).toLocaleDateString()}
-            {item.confirmedByName && ` by ${item.confirmedByName}`}.
-          </p>
-          <div className="rounded-xl border border-gray-200 bg-white p-4 text-left">
-            <p className="font-semibold">{item.prTitle}</p>
-            <p className="text-sm text-gray-500">
-              {item.repoFullName} #{item.prNumber}
-            </p>
+        <div className="max-w-md w-full">
+          <div className="relative overflow-hidden rounded-2xl border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100/50 p-6 shadow-sm">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-100/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-800">
+                <span className="text-sm" aria-hidden>
+                  ✓
+                </span>
+                Already confirmed
+              </div>
+
+              <div>
+                <p className="text-lg font-semibold text-primary">This handover is complete</p>
+                <p className="mt-1 text-sm text-primary/80">
+                  Confirmed on {confirmedDate}
+                  {item.confirmedByName && ` by ${item.confirmedByName}`}.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-emerald-200/80 bg-white/80 p-4 text-left">
+                <a
+                  href={item.prUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-semibold text-accent-purple hover:underline"
+                >
+                  {item.prTitle} ↗
+                </a>
+                <p className="mt-1 text-sm text-gray-600">
+                  {item.repoFullName} #{item.prNumber}
+                </p>
+              </div>
+
+              <p className="text-xs text-gray-500">You can close this tab now.</p>
+            </div>
           </div>
         </div>
       </main>
@@ -57,37 +83,63 @@ export default async function ConfirmPage({
   }
 
   if (item.refusedAt) {
+    const refusedDate = new Date(item.refusedAt).toLocaleString(undefined, {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+
     return (
       <main className="flex min-h-screen items-center justify-center px-4">
-        <div className="max-w-md w-full space-y-4 text-center">
-          <div className="text-5xl">🚫</div>
-          <h1 className="text-2xl font-bold">Already declined</h1>
-          <p className="text-gray-600">
-            This PR was declined on{" "}
-            {new Date(item.refusedAt).toLocaleDateString()}
-            {item.refusedByName && ` by ${item.refusedByName}`}.
-          </p>
-          <div className="rounded-xl border border-gray-200 bg-white p-4 text-left space-y-2">
-            <p className="font-semibold">{item.prTitle}</p>
-            <p className="text-sm text-gray-500">
-              {item.repoFullName} #{item.prNumber}
-            </p>
-            {item.refusalMessage && (
-              <p className="text-sm text-gray-700 border-t border-gray-100 pt-2">{item.refusalMessage}</p>
-            )}
-            {item.refusalSuggestedOwner && (
-              <p className="text-sm text-gray-600 border-t border-gray-100 pt-2">
-                Suggested owner:{" "}
+        <div className="max-w-md w-full">
+          <div className="relative overflow-hidden rounded-2xl border border-red-200 bg-gradient-to-br from-red-50 via-white to-red-100/60 p-6 shadow-sm">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-100/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-red-800">
+                <span className="text-sm" aria-hidden>
+                  !
+                </span>
+                Already declined
+              </div>
+
+              <div>
+                <p className="text-lg font-semibold text-accent-red">This handover was declined</p>
+                <p className="mt-1 text-sm text-accent-red/90">
+                  Declined on {refusedDate}
+                  {item.refusedByName && ` by ${item.refusedByName}`}.
+                </p>
+              </div>
+
+              <div className="rounded-xl border border-red-200/80 bg-white/85 p-4 text-left space-y-2">
                 <a
-                  href={`https://github.com/${item.refusalSuggestedOwner}`}
+                  href={item.prUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="font-medium text-accent-purple hover:underline"
+                  className="font-semibold text-accent-purple hover:underline"
                 >
-                  @{item.refusalSuggestedOwner}
+                  {item.prTitle} ↗
                 </a>
-              </p>
-            )}
+                <p className="text-sm text-gray-600">
+                  {item.repoFullName} #{item.prNumber}
+                </p>
+                {item.refusalMessage && (
+                  <p className="border-t border-red-100 pt-2 text-sm text-gray-700">{item.refusalMessage}</p>
+                )}
+                {item.refusalSuggestedOwner && (
+                  <p className="border-t border-red-100 pt-2 text-sm text-gray-600">
+                    Suggested owner:{" "}
+                    <a
+                      href={`https://github.com/${item.refusalSuggestedOwner}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-medium text-accent-purple hover:underline"
+                    >
+                      @{item.refusalSuggestedOwner}
+                    </a>
+                  </p>
+                )}
+              </div>
+
+              <p className="text-xs text-gray-500">You can close this tab now.</p>
+            </div>
           </div>
         </div>
       </main>
@@ -136,7 +188,13 @@ export default async function ConfirmPage({
           )}
         </div>
 
-        <ConfirmButton token={token} prTitle={item.prTitle} />
+        <ConfirmButton
+          token={token}
+          prTitle={item.prTitle}
+          prUrl={item.prUrl}
+          repoFullName={item.repoFullName}
+          prNumber={item.prNumber}
+        />
       </div>
     </main>
   );

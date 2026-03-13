@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { sendActivationEmails } from "@/lib/handover-notifications";
 
 async function getHandoverForUser(id: string, githubId: string) {
   const user = await prisma.user.findUnique({ where: { githubId } });
@@ -59,5 +60,54 @@ export async function PATCH(
     },
   });
 
-  return NextResponse.json({ handover: updated });
+  let notifications: {
+    attempted: number;
+    sent: number;
+    skippedOwners: string[];
+    error?: string;
+  } | null = null;
+
+  if (
+    handover.status === "DRAFT" &&
+    status === "ACTIVE" &&
+    session.accessToken &&
+    session.user.githubLogin
+  ) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin;
+    notifications = await sendActivationEmails({
+      handoverTitle: updated.title,
+      creatorLogin: session.user.githubLogin,
+      accessToken: session.accessToken,
+      appUrl,
+      items: handover.items,
+    });
+  }
+
+  return NextResponse.json({ handover: updated, notifications });
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session?.user.githubId) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+  const handover = await getHandoverForUser(id, session.user.githubId);
+  if (!handover) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  if (handover.status === "COMPLETE") {
+    return NextResponse.json(
+      { error: "Completed handovers cannot be deleted" },
+      { status: 400 }
+    );
+  }
+
+  await prisma.handover.delete({ where: { id } });
+  return NextResponse.json({ ok: true });
 }

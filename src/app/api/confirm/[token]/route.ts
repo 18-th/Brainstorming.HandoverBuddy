@@ -30,7 +30,7 @@ export async function DELETE(
   };
 
   try {
-    await prisma.handoverItem.update({
+    const updated = await prisma.handoverItem.update({
       where: { id: item.id },
       data: {
         refusedAt: new Date(),
@@ -39,12 +39,15 @@ export async function DELETE(
         refusalSuggestedOwner: refusalSuggestedOwner?.trim() || null,
       },
     });
+
+    return NextResponse.json({
+      success: true,
+      refusedAt: updated.refusedAt,
+    });
   } catch (e) {
     console.error("Failed to record refusal:", e);
     return NextResponse.json({ error: "Failed to record refusal" }, { status: 500 });
   }
-
-  return NextResponse.json({ success: true });
 }
 
 export async function POST(

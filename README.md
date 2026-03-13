@@ -3,7 +3,7 @@ A 2026 Brainstorming project that handles handover of duties for people who go o
 
 ## Email notifications
 
-When a handover is moved from `DRAFT` to `ACTIVE`, the API now sends notification emails to each assigned owner.
+When a handover is moved from `DRAFT` to `ACTIVE` or to `COMPLETE`, the API sends notification emails to each assigned owner.
 
 Set these environment variables to enable SMTP:
 

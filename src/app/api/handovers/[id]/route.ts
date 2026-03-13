@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { sendActivationEmails } from "@/lib/handover-notifications";
+import {
+  sendActivationEmails,
+  sendCompletionEmails,
+} from "@/lib/handover-notifications";
 
 async function getHandoverForUser(id: string, githubId: string) {
   const user = await prisma.user.findUnique({ where: { githubId } });
@@ -79,6 +82,20 @@ export async function PATCH(
       creatorLogin: session.user.githubLogin,
       accessToken: session.accessToken,
       appUrl,
+      items: handover.items,
+    });
+  }
+
+  if (
+    handover.status !== "COMPLETE" &&
+    status === "COMPLETE" &&
+    session.accessToken &&
+    session.user.githubLogin
+  ) {
+    notifications = await sendCompletionEmails({
+      handoverTitle: updated.title,
+      creatorLogin: session.user.githubLogin,
+      accessToken: session.accessToken,
       items: handover.items,
     });
   }
